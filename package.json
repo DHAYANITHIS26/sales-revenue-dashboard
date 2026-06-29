@@ -1,0 +1,15 @@
+{
+  "name": "sales-revenue-dashboard",
+  "version": "1.0.0",
+  "description": "Enterprise BI Sales & Revenue Analysis Dashboard",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "python server.py"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

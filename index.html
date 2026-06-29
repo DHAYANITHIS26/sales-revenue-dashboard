@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise BI Sales & Revenue Dashboard</title>
+    <!-- CSS Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for CSV Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- SheetJS for Excel Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="activity" class="logo-icon animate-pulse"></i>
+                <span class="logo-text">G-Analytic <span class="badge">BI</span></span>
+            </div>
+            
+            <nav class="nav-container">
+                <p class="menu-heading">Dashboards</p>
+                <ul class="nav-links">
+                    <li class="nav-item active" data-tab="overview"><a href="javascript:void(0)"><i data-lucide="layout-dashboard"></i> Overview</a></li>
+                    <li class="nav-item" data-tab="sales"><a href="javascript:void(0)"><i data-lucide="trending-up"></i> Sales Trend</a></li>
+                    <li class="nav-item" data-tab="products"><a href="javascript:void(0)"><i data-lucide="shopping-bag"></i> Product Performance</a></li>
+                    <li class="nav-item" data-tab="regions"><a href="javascript:void(0)"><i data-lucide="map-pin"></i> Regional Analysis</a></li>
+                    <li class="nav-item" data-tab="customers"><a href="javascript:void(0)"><i data-lucide="users"></i> Customer Behavior</a></li>
+                    <li class="nav-item" data-tab="profit"><a href="javascript:void(0)"><i data-lucide="pie-chart"></i> Profit Analysis</a></li>
+                    <li class="nav-item" data-tab="insights"><a href="javascript:void(0)"><i data-lucide="lightbulb"></i> Business Insights</a></li>
+                    <li class="nav-item" data-tab="data-manager"><a href="javascript:void(0)"><i data-lucide="database"></i> Data Manager</a></li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="theme-toggle-container">
+                    <span>Theme</span>
+                    <button class="theme-toggle-btn" id="theme-toggle" title="Toggle Light/Dark Theme">
+                        <i data-lucide="moon" class="theme-icon moon-icon"></i>
+                        <i data-lucide="sun" class="theme-icon sun-icon" style="display:none;"></i>
+                    </button>
+                </div>
+                <div class="user-profile">
+                    <div class="avatar">JR</div>
+                    <div class="user-info">
+                        <span class="name">John Reveal</span>
+                        <span class="role">BI Developer</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Panel -->
+        <main class="main-content">
+            <!-- Header & Search -->
+            <header class="top-bar">
+                <div class="page-title-area">
+                    <h1 id="dynamic-page-title">Executive Overview</h1>
+                    <p class="subtitle" id="dynamic-page-subtitle">Real-time enterprise metrics & core analytics</p>
+                </div>
+
+                <div class="search-box">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="global-search" placeholder="Search orders, states, categories...">
+                </div>
+
+                <div class="top-actions">
+                    <button class="icon-btn" id="filter-toggle-btn" title="Toggle Slicers/Filters">
+                        <i data-lucide="filter"></i>
+                        <span class="btn-text">Filters</span>
+                    </button>
+                    <button class="icon-btn" id="reset-filters-btn" title="Reset All Filters">
+                        <i data-lucide="rotate-ccw"></i>
+                    </button>
+                    <div class="export-dropdown">
+                        <button class="icon-btn primary" id="export-btn" title="Export current view data">
+                            <i data-lucide="download"></i> Export <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                        </button>
+                        <div class="dropdown-content">
+                            <a href="javascript:void(0)" id="export-csv"><i data-lucide="file-text"></i> Export CSV</a>
+                            <a href="javascript:void(0)" id="export-excel"><i data-lucide="file-spreadsheet"></i> Export Excel</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Slicers / Filters Panel (Collapsible) -->
+            <section class="filters-panel glass show" id="filters-panel">
+                <div class="filters-grid">
+                    <div class="filter-item">
+                        <label for="start-date-filter"><i data-lucide="calendar"></i> Start Date</label>
+                        <input type="date" id="start-date-filter">
+                    </div>
+                    <div class="filter-item">
+                        <label for="end-date-filter"><i data-lucide="calendar"></i> End Date</label>
+                        <input type="date" id="end-date-filter">
+                    </div>
+                    <div class="filter-item">
+                        <label for="region-filter"><i data-lucide="map"></i> Region</label>
+                        <select id="region-filter">
+                            <option value="All">All Regions</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="category-filter"><i data-lucide="tag"></i> Category</label>
+                        <select id="category-filter">
+                            <option value="All">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="subcat-filter"><i data-lucide="layers"></i> Sub-Category</label>
+                        <select id="subcat-filter">
+                            <option value="All">All Sub-Categories</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="product-filter"><i data-lucide="shopping-bag"></i> Product</label>
+                        <select id="product-filter">
+                            <option value="All">All Products</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="customer-filter"><i data-lucide="users"></i> Customer</label>
+                        <select id="customer-filter">
+                            <option value="All">All Customers</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="payment-filter"><i data-lucide="credit-card"></i> Payment Mode</label>
+                        <select id="payment-filter">
+                            <option value="All">All Payments</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Active Filters Indicators -->
+            <div class="active-filters-chips" id="active-filters-chips">
+                <!-- Dynamically populated chips -->
+            </div>
+
+            <!-- Tab Content Areas -->
+            <div class="tabs-content">
+
+                <!-- 1. OVERVIEW TAB -->
+                <div class="tab-panel active" id="overview-tab">
+                    <!-- KPI Matrix Grid -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card glass" data-kpi="sales">
+                            <div class="kpi-icon-wrap bg-blue"><i data-lucide="indian-rupee"></i></div>
+                            <div class="kpi-info">
+                                <h3>Total Sales</h3>
+                                <p class="kpi-val" id="kpi-sales">₹0</p>
+                            </div>
+                        </div>
+                        <div class="kpi-card glass" data-kpi="revenue">
+                            <div class="kpi-icon-wrap bg-indigo"><i data-lucide="trending-up"></i></div>
+                            <div class="kpi-info">
+                                <h3>Total Revenue</h3>
+                                <p class="kpi-val" id="kpi-revenue">₹0</p>
+                            </div>
+                        </div>
+                        <div class="kpi-card glass" data-kpi="profit">
+                            <div class="kpi-icon-wrap bg-emerald"><i data-lucide="percent"></i></div>
+                            <div class="kpi-info">
+                                <h3>Total Profit</h3>
+                                <p class="kpi-val" id="kpi-profit">₹0</p>
+                            </div>
+                        </div>
+                        <div class="kpi-card glass" data-kpi="margin">
+                            <div class="kpi-icon-wrap bg-purple"><i data-lucide="award"></i></div>
+                            <div class="kpi-info">
+                                <h3>Profit Margin %</h3>
+                                <p class="kpi-val" id="kpi-margin">0%</p>
+                            </div>
+                        </div>
+                        <div class="kpi-card glass" data-kpi="orders">
+                            <div class="kpi-icon-wrap bg-amber"><i data-lucide="shopping-cart"></i></div>
+                            <div class="kpi-info">
+                                <h3>Total Orders</h3>
+                                <p class="kpi-val" id="kpi-orders">0</p>
+                            </div>
+                        </div>
+                        <div class="kpi-card glass" data-kpi="customers">
+                            <div class="kpi-icon-wrap bg-rose"><i data-lucide="users"></i></div>
+                            <div class="kpi-info">
+                                <h3>Total Customers</h3>
+                                <p class="kpi-val" id="kpi-customers">0</p>
+                            </div>
+                        </div>
+                        <div class="kpi-card glass" data-kpi="qty">
+                            <div class="kpi-icon-wrap bg-teal"><i data-lucide="package"></i></div>
+                            <div class="kpi-info">
+                                <h3>Quantity Sold</h3>
+                                <p class="kpi-val" id="kpi-quantity">0</p>
+                            </div>
+                        </div>
+                        <div class="kpi-card glass" data-kpi="aov">
+                            <div class="kpi-icon-wrap bg-orange"><i data-lucide="bar-chart-2"></i></div>
+                            <div class="kpi-info">
+                                <h3>Avg Order Value</h3>
+                                <p class="kpi-val" id="kpi-aov">₹0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Overview Charts Grid -->
+                    <div class="visuals-grid">
+                        <div class="visual-card glass lg">
+                            <div class="visual-header">
+                                <h2>Monthly Revenue & Profit Trend</h2>
+                                <p class="visual-desc">Core financial aggregates track month-over-month</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-overview-trend"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass">
+                            <div class="visual-header">
+                                <h2>Revenue Contribution %</h2>
+                                <p class="visual-desc">Distribution of sales by Product Category</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-overview-donut"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass">
+                            <div class="visual-header">
+                                <h2>Top Regions by Revenue</h2>
+                                <p class="visual-desc">Regional sales breakdown</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-overview-region"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass lg">
+                            <div class="visual-header">
+                                <h2>Recent High-Value Transactions</h2>
+                                <p class="visual-desc">Double-click row to view detailed transaction profile</p>
+                            </div>
+                            <div class="table-wrapper">
+                                <table id="table-overview-transactions">
+                                    <thead>
+                                        <tr>
+                                            <th>Order ID</th>
+                                            <th>Date</th>
+                                            <th>Customer</th>
+                                            <th>Category</th>
+                                            <th>Sales</th>
+                                            <th>Profit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Dynamically generated rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. SALES ANALYSIS TAB -->
+                <div class="tab-panel" id="sales-tab">
+                    <div class="visuals-grid">
+                        <div class="visual-card glass lg">
+                            <div class="visual-header">
+                                <h2>Monthly Sales Trend (Area Chart)</h2>
+                                <p class="visual-desc">Detailed monthly volume changes</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-sales-monthly"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass">
+                            <div class="visual-header">
+                                <h2>Quarterly Sales Performance</h2>
+                                <p class="visual-desc">Sales grouped by fiscal quarters</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-sales-quarterly"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass lg">
+                            <div class="visual-header">
+                                <h2>Daily Sales Analysis</h2>
+                                <p class="visual-desc">Tracks daily sales volatility and key high peaks</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-sales-daily"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass">
+                            <div class="visual-header">
+                                <h2>Yearly Revenue Trend</h2>
+                                <p class="visual-desc">Comparison of total yearly net aggregates</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-sales-yearly"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. PRODUCT PERFORMANCE TAB -->
+                <div class="tab-panel" id="products-tab">
+                    <div class="visuals-grid">
+                        <div class="visual-card glass lg">
+                            <div class="visual-header">
+                                <h2>Top 10 Products by Sales</h2>
+                                <p class="visual-desc">Product revenue rankings</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-products-top"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass">
+                            <div class="visual-header">
+                                <h2>Sales by Sub-Category</h2>
+                                <p class="visual-desc">Deep breakdown of product lines</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-products-subcategory"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass lg">
+                            <div class="visual-header">
+                                <h2>Product Hierarchy Treemap</h2>
+                                <p class="visual-desc">Visual squarified layout representing Categories & Sub-Categories relative sales size</p>
+                            </div>
+                            <!-- Custom HTML Treemap Container -->
+                            <div class="treemap-container" id="custom-treemap">
+                                <!-- Treemap items will be generated by JS -->
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass">
+                            <div class="visual-header">
+                                <h2>Bottom 10 Products by Sales</h2>
+                                <p class="visual-desc">Lowest performing product SKUs</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-products-bottom"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. REGIONAL ANALYSIS TAB -->
+                <div class="tab-panel" id="regions-tab">
+                    <div class="visuals-grid">
+                        <div class="visual-card glass lg">
+                            <div class="visual-header">
+                                <h2>Regional Revenue Map</h2>
+                                <p class="visual-desc">Interactive geographic distribution maps representing sales density</p>
+                            </div>
+                            <!-- Custom Interactive Map Container -->
+                            <div class="map-layout">
+                                <div class="svg-map-wrapper" id="usa-svg-map">
+                                    <!-- A clean custom US SVG Regional Map will be rendered dynamically by JavaScript -->
+                                </div>
+                                <div class="map-legend">
+                                    <div class="legend-title">Sales Volume</div>
+                                    <div class="legend-scale">
+                                        <span class="scale-box" style="background: rgba(59, 130, 246, 0.15);"></span>
+                                        <span class="scale-box" style="background: rgba(59, 130, 246, 0.4);"></span>
+                                        <span class="scale-box" style="background: rgba(59, 130, 246, 0.75);"></span>
+                                        <span class="scale-box" style="background: rgba(59, 130, 246, 1);"></span>
+                                    </div>
+                                    <div class="legend-labels">
+                                        <span>Min</span>
+                                        <span>Max</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass">
+                            <div class="visual-header">
+                                <h2>Regional Profit Comparison</h2>
+                                <p class="visual-desc">Revenue vs Profit across main operating zones</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-regions-profit-comp"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass">
+                            <div class="visual-header">
+                                <h2>Sales by State</h2>
+                                <p class="visual-desc">Performance matrix at state level</p>
+                            </div>
+                            <div class="state-performance-list" id="state-perf-list">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass lg">
+                            <div class="visual-header">
+                                <h2>Top Cities by Sales volume</h2>
+                                <p class="visual-desc">Top 15 cities sorted by volume</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-regions-city"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. CUSTOMER BEHAVIOR TAB -->
+                <div class="tab-panel" id="customers-tab">
+                    <div class="visuals-grid">
+                        <div class="visual-card glass">
+                            <div class="visual-header">
+                                <h2>Customer Segments</h2>
+                                <p class="visual-desc">Loyalty classification based on lifetime revenue spend</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-customers-segments"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass">
+                            <div class="visual-header">
+                                <h2>New vs Returning Customers</h2>
+                                <p class="visual-desc">Rate of customer acquisition vs retention</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-customers-retention"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass lg">
+                            <div class="visual-header">
+                                <h2>Top Performing Customer Accounts</h2>
+                                <p class="visual-desc">Detailed profiling of customers by revenue, orders, and items</p>
+                            </div>
+                            <div class="table-wrapper">
+                                <table id="table-customer-performance">
+                                    <thead>
+                                        <tr>
+                                            <th>Customer ID</th>
+                                            <th>Name</th>
+                                            <th>Revenue</th>
+                                            <th>Orders</th>
+                                            <th>Quantity</th>
+                                            <th>Profit Margin</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Dynamically generated rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. PROFIT ANALYSIS TAB -->
+                <div class="tab-panel" id="profit-tab">
+                    <div class="visuals-grid">
+                        <div class="visual-card glass lg">
+                            <div class="visual-header">
+                                <h2>Revenue vs Profit Scatter Plot</h2>
+                                <p class="visual-desc">Identifies margin anomalies and product profitability profiles</p>
+                            </div>
+                            <div class="chart-wrapper font-sm">
+                                <canvas id="chart-profit-scatter"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass">
+                            <div class="visual-header">
+                                <h2>Profit by Category</h2>
+                                <p class="visual-desc">Profit margins distributed across core groups</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-profit-category"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass lg">
+                            <div class="visual-header">
+                                <h2>Profit Trends Over Time</h2>
+                                <p class="visual-desc">Track Net Profit and margins trend lines monthly</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-profit-trend"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="visual-card glass">
+                            <div class="visual-header">
+                                <h2>Profit vs Discount Impact</h2>
+                                <p class="visual-desc">Scatter analysis showing how discount % affects transaction profit</p>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-profit-discount"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. BUSINESS INSIGHTS TAB -->
+                <div class="tab-panel" id="insights-tab">
+                    <div class="insights-dashboard">
+                        <div class="insight-hero-grid">
+                            <div class="insight-hero-card glass">
+                                <div class="hero-icon"><i data-lucide="zap"></i></div>
+                                <h2>Highest Revenue Month</h2>
+                                <p class="value" id="insight-top-month">--</p>
+                                <span class="badge positive" id="insight-top-month-val">₹0</span>
+                            </div>
+                            <div class="insight-hero-card glass">
+                                <div class="hero-icon"><i data-lucide="award"></i></div>
+                                <h2>Best Selling Product</h2>
+                                <p class="value" id="insight-top-product">--</p>
+                                <span class="badge positive" id="insight-top-product-val">₹0</span>
+                            </div>
+                            <div class="insight-hero-card glass">
+                                <div class="hero-icon"><i data-lucide="trending-down"></i></div>
+                                <h2>Lowest Performing Product</h2>
+                                <p class="value" id="insight-worst-product">--</p>
+                                <span class="badge negative" id="insight-worst-product-val">₹0</span>
+                            </div>
+                            <div class="insight-hero-card glass">
+                                <div class="hero-icon"><i data-lucide="percent"></i></div>
+                                <h2>Most Profitable Category</h2>
+                                <p class="value" id="insight-top-cat">--</p>
+                                <span class="badge positive" id="insight-top-cat-margin">0%</span>
+                            </div>
+                        </div>
+
+                        <div class="insight-details-grid">
+                            <div class="insight-detail-card glass">
+                                <div class="card-title"><i data-lucide="indian-rupee"></i> Revenue & Pricing Dynamics</div>
+                                <ul class="insight-list" id="insight-list-revenue">
+                                    <!-- Populated dynamically -->
+                                </ul>
+                            </div>
+                            <div class="insight-detail-card glass">
+                                <div class="card-title"><i data-lucide="users"></i> Customer & Region Patterns</div>
+                                <ul class="insight-list" id="insight-list-customer">
+                                    <!-- Populated dynamically -->
+                                </ul>
+                            </div>
+                            <div class="insight-detail-card glass">
+                                <div class="card-title"><i data-lucide="shield-alert"></i> Discount Impact & Leakage</div>
+                                <ul class="insight-list" id="insight-list-discounts">
+                                    <!-- Populated dynamically -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8. DATA MANAGER TAB -->
+                <div class="tab-panel" id="data-manager-tab">
+                    <div class="data-manager-grid">
+                        <div class="data-upload-card glass">
+                            <h2>Import Sales Dataset</h2>
+                            <p class="desc">Upload standard sales record sheets (CSV or Excel formats supported)</p>
+                            
+                            <div class="drop-zone" id="drop-zone">
+                                <i data-lucide="upload-cloud" class="drop-icon animate-bounce"></i>
+                                <p>Drag & Drop files here or click to browse</p>
+                                <span class="subtext">Supports .csv, .xlsx, .xls formats</span>
+                                <input type="file" id="data-file-input" accept=".csv, .xlsx, .xls" style="display: none;">
+                            </div>
+                            
+                            <div class="schema-hint">
+                                <h3>Expected CSV Schema Columns:</h3>
+                                <p>Order Date, Ship Date, Customer Name, Category, Sub-Category, Region, State, City, Sales, Quantity, Discount, Profit, Payment Mode.</p>
+                            </div>
+                        </div>
+
+                        <div class="db-sync-card glass">
+                            <h2>SQL Database Sync Console</h2>
+                            <p class="desc">Write and run direct SQL statements against our analytical memory instance.</p>
+                            
+                            <!-- SQL terminal emulator -->
+                            <div class="sql-terminal">
+                                <div class="terminal-header">
+                                    <div class="term-dots">
+                                        <span class="dot red"></span>
+                                        <span class="dot yellow"></span>
+                                        <span class="dot green"></span>
+                                    </div>
+                                    <div class="term-title">G-Analytic SQL Shell (v1.4)</div>
+                                    <div class="term-status"><i data-lucide="globe"></i> Connected</div>
+                                </div>
+                                <div class="terminal-presets">
+                                    <span class="preset-tag" data-query="SELECT * FROM Sales">SELECT *</span>
+                                    <span class="preset-tag" data-query="SELECT Category, SUM(Revenue) FROM Sales GROUP BY Category">Revenue by Category</span>
+                                    <span class="preset-tag" data-query="SELECT Region, SUM(Profit) FROM Sales GROUP BY Region ORDER BY Profit DESC">Profit by Region</span>
+                                    <span class="preset-tag" data-query="SELECT CustomerName, SUM(Revenue) FROM Sales GROUP BY CustomerName ORDER BY SUM(Revenue) DESC LIMIT 10">Top Customers</span>
+                                </div>
+                                <div class="terminal-body">
+                                    <div class="term-input-line">
+                                        <span class="prompt">sales_db=#</span>
+                                        <textarea id="sql-query-input" rows="2" placeholder="SELECT * FROM Sales WHERE Region = 'East'"></textarea>
+                                    </div>
+                                </div>
+                                <div class="terminal-footer">
+                                    <button class="sql-btn" id="run-sql-btn"><i data-lucide="play"></i> Run Query</button>
+                                    <button class="sql-btn secondary" id="reset-sql-db-btn"><i data-lucide="refresh-cw"></i> Restore Default Data</button>
+                                </div>
+                            </div>
+
+                            <div class="query-results-box glass" id="sql-results-box" style="display:none;">
+                                <div class="results-header">
+                                    <h3>Query Execution Output</h3>
+                                    <span class="exec-time" id="sql-exec-time">Time: 0ms</span>
+                                </div>
+                                <div class="table-wrapper sql-results-wrapper">
+                                    <table id="table-sql-results">
+                                        <thead>
+                                            <!-- Query headings -->
+                                        </thead>
+                                        <tbody>
+                                            <!-- Query rows -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Drill-through Popup Modal -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2 id="modal-title">Customer Profile: John Doe</h2>
+                <button class="close-btn" id="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-metrics-grid">
+                    <div class="modal-kpi">
+                        <h3>Total Lifetime Revenue</h3>
+                        <p id="modal-kpi-revenue">₹0</p>
+                    </div>
+                    <div class="modal-kpi">
+                        <h4>Total Orders Placed</h4>
+                        <p id="modal-kpi-orders">0</p>
+                    </div>
+                    <div class="modal-kpi">
+                        <h4>Average Profit Margin</h4>
+                        <p id="modal-kpi-margin">0%</p>
+                    </div>
+                </div>
+                
+                <div class="modal-chart-section">
+                    <h3>Purchase Value Over Time</h3>
+                    <div class="modal-chart-wrap">
+                        <canvas id="chart-modal-trend"></canvas>
+                    </div>
+                </div>
+
+                <div class="modal-table-section">
+                    <h3>Recent Transactions</h3>
+                    <div class="table-wrapper scroll-sm">
+                        <table id="table-modal-transactions">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Date</th>
+                                    <th>Product</th>
+                                    <th>Qty</th>
+                                    <th>Discount</th>
+                                    <th>Revenue</th>
+                                    <th>Profit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dynamically generated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Module JavaScript Entrypoint -->
+    <script type="module" src="app.js"></script>
+    <script>
+        // Init icon scripts
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
